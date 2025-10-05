@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tvpblp"
+version = "0.1.0"
+description = "BLP demand estimation utilities (personal research project)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Nikita Akimov" }]
+dependencies = ["numpy>=1.26", "scipy>=1.11", "pandas>=2.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tvpblp"]
