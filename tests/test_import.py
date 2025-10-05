@@ -1,21 +1,12 @@
 # tests/test_import.py
 import pandas as pd
-from tvpblp import TwoStepGMM_BLP
+from tvpblp import TwoStepGMM_BLP, sample_data_path
 
 
 def test_can_instantiate_with_minimal_df():
     # minimal synthetic dataset: 2 markets, 2 products each
-    df = pd.DataFrame(
-        {
-            "market": [1, 1, 2, 2],
-            "product": [101, 102, 201, 202],
-            "price": [1.0, 1.5, 0.9, 1.4],
-            "share": [0.2, 0.1, 0.25, 0.15],
-            "og_share": [0.7, 0.7, 0.6, 0.6],  # outside good share complement
-            "instrument_1": [0.95, 1.05, 1.02, 0.98],
-            "instrument_2": [1, 2, 1, 2],
-        }
-    )
+
+    df = pd.read_csv(sample_data_path()).head(4)
     m = TwoStepGMM_BLP(
         df,
         share_col="share",
