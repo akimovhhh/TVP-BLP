@@ -1,68 +1,18 @@
+# src/tvpblp/tvblp.py
+
 # ============================
 # Imports
 # ============================
-
-import numpy as np
 import warnings
+import numpy as np
 from numpy.linalg import inv
-from scipy.stats import norm
 
-
-# ============================
-# Utilities (module-level)
-# ============================
-
-
-def ensure_list(x, *, fallback=None) -> list:
-    """Normalize None/str/sequence into a list. If None -> fallback or []."""
-    if x is None:
-        return [] if fallback is None else list(fallback)
-    if isinstance(x, str):
-        return [x]
-    return list(x)
-
-
-def unique_preserve_order(seq):
-    """Return unique items of `seq` preserving first-seen order."""
-    # IMPROVE: You already use dict.fromkeys elsewhere; you could unify on one utility for clarity + tests.
-    seen = set()
-    out = []
-    for s in seq:
-        if s not in seen:
-            out.append(s)
-            seen.add(s)
-    return out
-
-
-def as_float64(df, cols):
-    """Extract columns from pandas.DataFrame as a contiguous float64 ndarray."""
-    # IMPROVE: allow "copy=False" semantics or memoryview if df is already float64; consider np.require(..., requirements='C') to guarantee C-order.
-    return np.ascontiguousarray(df[list(cols)].to_numpy(dtype=np.float64))
-
-
-def is_zero_L(L) -> bool:
-    """True if L should trigger simple-logit: None/empty/scalar-0/all-zeros."""
-    # IMPROVE: distinguish "None" (no RC optimization) vs "zeros" (RC intended but collapsed). For caching, prefer np.allclose with tol to avoid thrashing.
-    if L is None:
-        return True
-    arr = np.asarray(L, dtype=np.float64)
-    return (arr.size == 0) or np.allclose(arr, 0.0)
-
-
-def build_base_ppf_grid(q_dim, points_per_dim, qmin, qmax):
-    """
-    Build a tensor grid of standard-normal nodes via inverse-CDF on a
-    uniform grid of quantiles in (qmin, qmax). Returns (..., q_dim) ndarray.
-    """
-    # IMPROVE: for high q_dim, tensor grids explode (R = P^q). Offer MC/Sparse grids option toggles; Latin hypercube; Gauss-Hermite for normal.
-    if q_dim <= 0:
-        return None
-    if not (0.0 < qmin < qmax < 1.0):
-        raise ValueError("integration_int must satisfy 0 < qmin < qmax < 1")
-    q = np.linspace(qmin, qmax, num=int(points_per_dim), dtype=np.float64)
-    grids = np.meshgrid(*([q] * q_dim), indexing="ij")
-    U = np.stack(grids, axis=-1)  # (..., q_dim)
-    return norm.ppf(U).astype(np.float64)  # base z ~ N(0,1)
+from .utils import (
+    ensure_list,
+    as_float64,
+    is_zero_L,
+    build_base_ppf_grid,
+)
 
 
 # ============================

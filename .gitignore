@@ -4,9 +4,13 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Keep ignoring all CSVs by default…
+# Ignore all CSVs by default
 *.csv
 
-# …but allow curated small sample data for docs/tests
-!examples/data/*.csv
-!tests/data/*.csv
+# …but keep the packaged sample data
+!src/tvpblp/data/yoghurt_sample.csv
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
