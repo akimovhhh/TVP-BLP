@@ -1,11 +1,10 @@
-# tests/test_import.py
 import pandas as pd
-from tvpblp import TwoStepGMM_BLP, sample_data_path
+from tvpblp import TvPBLP, sample_data_path
 
 
 def test_can_instantiate_with_minimal_df():
     df = pd.read_csv(sample_data_path()).head(4)
-    m = TwoStepGMM_BLP(
+    m = TvPBLP(
         df,
         share_col="share",
         price_col="price",
