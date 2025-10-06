@@ -1,8 +1,6 @@
 # tvpblp
 
-Fast, well-documented BLP demand estimation in Python (work-in-progress).
-
+Implementation of BLP demand estimation with time-varying taste parameters
 ## Install (dev)
 ```bash
 pip install -e .
-- add PR demo line
