@@ -20,7 +20,7 @@ from .utils import (
 # ============================
 
 
-class TwoStepGMM_BLP:
+class TvPBLP:
     """
     FILL THIS LATER
     """
