@@ -73,3 +73,24 @@ def build_base_ppf_grid(
     grids = np.meshgrid(*([q] * q_dim), indexing="ij")
     U = np.stack(grids, axis=-1)  # (..., q_dim)
     return norm.ppf(U).astype(np.float64)  # base z ~ N(0,1)
+
+
+def inv_or_reciprocal(x):
+    """
+    Return 1/x if x is a scalar, otherwise return inv(x) if x is a square matrix.
+    """
+    x = np.asarray(x)
+    if x.ndim == 0:  # scalar
+        return 1.0 / x
+    elif x.ndim == 1:
+        raise ValueError("Input is a 1D array — cannot invert.")
+    elif x.shape[0] != x.shape[1]:
+        raise ValueError("Matrix must be square for inversion.")
+    else:
+        return np.linalg.inv(x)
+
+
+def ensure_colvec(w):
+    w = np.atleast_1d(w).astype(np.float64)
+    w = np.ascontiguousarray(w.reshape(-1, 1))
+    return w

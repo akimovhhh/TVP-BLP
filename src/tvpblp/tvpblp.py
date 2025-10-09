@@ -12,6 +12,8 @@ from .utils import (
     as_float64,
     is_zero_L,
     build_base_ppf_grid,
+    inv_or_reciprocal,
+    ensure_colvec,
 )
 
 
@@ -779,3 +781,114 @@ class TvPBLP:
             "result": res,
             "n_iter": iteration_data["iter"],
         }
+
+
+class TVIV:
+    """_summary_"""
+
+    def __init__(
+        self,
+        data,
+        y_col=None,
+        X_col=None,
+        X_tv_col=None,
+        X_endog_col=None,
+        time_col="time",
+        instruments_col=None,
+    ):
+        """
+        Parameters
+        ----------
+        data : pandas.DataFrame
+        y_col: str
+            Dependent variable
+        X_col: list
+            Explanatory variables
+        X_tv_col: list
+            Explanatory variables that have time-varying coefficients
+        X_endog_col:
+            Endogenous explanatory variables
+        time_col: str
+            Time indexing column
+        instruments_col: list
+            Excluded instruments
+        """
+        # --- store args
+        self.data = data.copy()
+        self.y_col = ensure_list(y_col)
+        self.X_col = ensure_list(X_col)
+        self.X_tv_col = ensure_list(X_tv_col)
+        self.X_st_col = [item for item in self.X_col if item not in self.X_tv_col]
+        self.X_endog_col = set(ensure_list(X_endog_col))
+        self.time_col = time_col
+        self.instruments_col = ensure_list(instruments_col)
+        self.Z_col = [
+            item
+            for item in (*self.X_col, *self.instruments_col)
+            if item not in self.X_endog_col
+        ]
+
+        # Creating all the necessary const attributes
+        self.y = as_float64(self.data, self.y_col)
+        self.X = as_float64(self.data, self.X_col)
+        self.X_tv = as_float64(self.data, self.X_tv_col)
+        self.X_st = as_float64(self.data, self.X_st_col)
+        self.time = (self.data[self.time_col]).to_numpy()
+        self.Z = as_float64(self.data, self.Z_col)
+        self.time_unique = np.sort(np.unique(self.time))
+        self.n_obs = self.y.shape[0]
+
+        self._Vzx = self.Z.T @ self.X_tv / self.n_obs
+        self._Vxz = self._Vzx.T
+        self._Vzz = self.Z.T @ self.Z / self.n_obs
+        self._Vzz_inv = inv_or_reciprocal(self._Vzz)
+        self._M = (
+            inv_or_reciprocal(self._Vxz @ self._Vzz_inv @ self._Vzx)
+            @ self._Vxz
+            @ self._Vzz_inv
+        )
+
+    def filter(self, w, A, B, theta):
+        w = ensure_colvec(w)
+        theta = ensure_colvec(theta)
+
+        f = {v: None for v in self.time_unique}
+        s = {v: None for v in self.time_unique}
+        t_prev = self.time_unique[0]
+
+        f[t_prev] = w
+
+        y_sample_init = self.y[self.time == t_prev]
+        n_obs_sample_init = y_sample_init.shape[0]
+        X_tv_sample_init = self.X_tv[self.time == t_prev]
+        Z_sample_init = self.Z[self.time == t_prev]
+        X_st_sample_init = self.X_st[self.time == t_prev]
+
+        g_init = (
+            Z_sample_init.T
+            @ (y_sample_init - X_tv_sample_init @ f[t_prev] - X_st_sample_init @ theta)
+            / n_obs_sample_init
+        )
+        s[t_prev] = self.M @ g_init
+
+        Id = np.eye(B.shape[0])
+
+        for t in self.time_unique[1:]:
+            f[t] = (Id - B) @ w + B @ f[t_prev] + A @ s[t_prev]
+
+            y_sample = self.y[self.time == t]
+            n_obs_sample = y_sample.shape[0]
+            X_tv_sample = self.X_tv[self.time == t]
+            Z_sample = self.Z[self.time == t]
+            X_st_sample = self.X_st[self.time == t]
+
+            g_t = (
+                Z_sample.T
+                @ (y_sample - X_tv_sample @ f[t] - X_st_sample @ theta)
+                / n_obs_sample
+            )
+            s[t] = self._M @ g_t
+
+            t_prev = t
+
+        return f, s
